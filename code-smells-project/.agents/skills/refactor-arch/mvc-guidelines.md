@@ -1,0 +1,115 @@
+# Guidelines de arquitetura: MVC alvo (Fase 3)
+
+O objetivo é chegar a uma estrutura **Model–View–Controller** adaptada a APIs, em qualquer linguagem. Os nomes das pastas seguem a convenção do ecossistema, mas as **responsabilidades** são sempre as mesmas.
+
+## Camadas e responsabilidades
+
+| Camada | Responsabilidade | Pode | Não pode |
+|---|---|---|---|
+| **Config** | Ler configuração (porta, segredos, caminho do banco, CORS, flags) do ambiente, com defaults seguros para desenvolvimento | Ler variáveis de ambiente e `.env` | Conter segredo real; ter lógica de negócio |
+| **Models** | Dados e persistência: estrutura das entidades, consultas parametrizadas, regras que dependem só dos dados (cálculo de total, desconto, estoque suficiente), serialização com allowlist de campos | Falar com o banco; lançar erros de domínio | Conhecer HTTP (request, response, status code) |
+| **Views / Routes** | Mapear método e URL para um controller. Em APIs, também é onde se define o formato da resposta | Declarar rotas, blueprints, routers; aplicar middlewares por rota | Conter regra de negócio, validação elaborada ou acesso ao banco |
+| **Controllers** | Orquestrar a requisição: ler e validar a entrada, chamar models na ordem certa, decidir o status HTTP, montar a resposta | Chamar models e serviços injetados | Escrever SQL; conhecer detalhes do banco |
+| **Middlewares** | Preocupações transversais: tratamento central de erros, autenticação e autorização, CORS, logging de requisição | Interceptar a requisição ou a resposta | Conter regra de domínio |
+| **Entry point (composition root)** | Criar a aplicação, ler a config, montar as dependências, registrar rotas e middlewares, iniciar o servidor | Ser o único lugar que conhece todas as camadas | Conter regra de negócio ou handler de rota |
+
+## Regras de dependência
+
+```
+Entry point → Routes → Controllers → Models → Database/Config
+                  ↘ Middlewares ↗
+```
+
+- A dependência aponta **para dentro**: rotas conhecem controllers, controllers conhecem models, models conhecem o banco. Nunca o contrário.
+- **Models não importam controllers, rotas nem objetos de requisição.**
+- **Controllers não importam o módulo do banco** nem escrevem SQL. Recebem models (ou repositórios) prontos.
+- A conexão com o banco é criada no composition root (ou em um módulo de infraestrutura) e passada adiante. Nada de conexão global reatribuída.
+- A configuração é lida em um só lugar (`config`) e injetada, não espalhada por `os.environ` e literais.
+
+## Onde cada coisa vai (tabela de decisão)
+
+| Trecho de código | Destino |
+|---|---|
+| `SELECT`, `INSERT`, `UPDATE`, `DELETE`, uso do ORM | Model |
+| Calcular total, desconto, verificar estoque, aplicar regra de status | Model (regra pura) ou serviço de domínio chamado pelo controller |
+| Ler `request.json` / `req.body` e validar campos | Controller (ou validador chamado por ele) |
+| Escolher `200`, `201`, `400`, `404` | Controller |
+| `jsonify(...)` / `res.json(...)` com o envelope da resposta | Controller, usando o serializer do model |
+| `@app.route(...)` / `router.get(...)` | Routes |
+| `try/except` que converte exceção em resposta | Middleware de erro |
+| Verificação de token ou papel | Middleware |
+| Notificações (e-mail, SMS, push) | Serviço dedicado, chamado pelo controller |
+| Constantes de regra (faixas de desconto, status válidos) | `config` ou módulo de constantes do domínio |
+
+## Estruturas-alvo
+
+### Python / Flask
+
+```
+<projeto>/
+├── app.py                      # entry point (composition root)
+├── config/
+│   └── settings.py             # leitura de env, defaults
+├── database.py                 # conexão / sessão (sem estado global solto)
+├── models/
+│   ├── produto_model.py
+│   └── usuario_model.py
+├── controllers/
+│   ├── produto_controller.py
+│   └── pedido_controller.py
+├── routes/                     # (a "view" da API)
+│   └── routes.py               # blueprints
+├── middlewares/
+│   ├── error_handler.py
+│   └── auth.py
+└── requirements.txt
+```
+
+### Node.js / Express
+
+```
+<projeto>/
+├── src/
+│   ├── app.js                  # entry point: monta e inicia
+│   ├── config/
+│   │   └── settings.js
+│   ├── database/
+│   │   └── connection.js
+│   ├── models/
+│   │   ├── userModel.js
+│   │   └── courseModel.js
+│   ├── controllers/
+│   │   ├── checkoutController.js
+│   │   └── adminController.js
+│   ├── routes/
+│   │   └── index.js            # Routers
+│   └── middlewares/
+│       ├── errorHandler.js
+│       └── auth.js
+├── api.http
+└── package.json
+```
+
+Em outras linguagens, mantenha as mesmas responsabilidades com os nomes locais (`Controller`, `Repository`, `Entity`, `Router`).
+
+## Projetos que já têm alguma organização
+
+Quando o projeto já tem pastas como `models/`, `routes/`, `services/`, `utils/`:
+
+1. **Mapeie** o que existe para as camadas acima. Por exemplo: `routes/` hoje faz o papel de controller **e** de view.
+2. **Não reescreva o que já está adequado.** Preserve nomes de pastas e arquivos que já cumprem a responsabilidade.
+3. **Extraia o que falta**: crie `controllers/` e mova para lá a lógica que está nas rotas, deixando `routes/` só com o mapeamento.
+4. Mantenha `services/` quando já existir e tiver propósito (por exemplo, notificação). Ligue-o ao fluxo ou remova se for código morto sem uso, justificando.
+5. Crie `config/` e `middlewares/` quando faltarem.
+6. Centralize a lógica duplicada (por exemplo, "tarefa atrasada") no model e use-a nos controllers.
+
+## Checklist da estrutura final
+
+- [ ] Configuração extraída para um módulo de config, sem segredo hardcoded
+- [ ] Models abstraem o acesso a dados, com queries parametrizadas
+- [ ] Routes/Views só mapeiam URL para controller
+- [ ] Controllers concentram o fluxo da aplicação, sem SQL
+- [ ] Tratamento de erro centralizado em middleware
+- [ ] Entry point claro, que apenas compõe e inicia
+- [ ] Sem estado global mutável; dependências injetadas
+- [ ] Rotas, métodos, payloads e status originais preservados (exceto mudanças de contrato deliberadas)

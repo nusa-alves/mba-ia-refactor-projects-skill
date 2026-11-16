@@ -1,0 +1,2 @@
+"""Middlewares transversais da aplicação."""
+
