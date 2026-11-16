@@ -1,0 +1,16 @@
+TASK_STATUSES = ('pending', 'in_progress', 'done', 'cancelled')
+TASK_PRIORITIES = (1, 2, 3, 4, 5)
+TASK_PRIORITY_NAMES = ('critical', 'high', 'medium', 'low', 'minimal')
+CLOSED_TASK_STATUSES = ('done', 'cancelled')
+TASK_DONE_STATUS = 'done'
+DEFAULT_TASK_STATUS = 'pending'
+USER_ROLES = ('user', 'admin', 'manager')
+DEFAULT_USER_ROLE = 'user'
+MIN_TASK_TITLE_LENGTH = 3
+MAX_TASK_TITLE_LENGTH = 200
+MIN_PASSWORD_LENGTH = 4
+MIN_TASK_PRIORITY = min(TASK_PRIORITIES)
+MAX_TASK_PRIORITY = max(TASK_PRIORITIES)
+DEFAULT_TASK_PRIORITY = 3
+DEFAULT_CATEGORY_COLOR = '#000000'
+REPORT_WINDOW_DAYS = 7

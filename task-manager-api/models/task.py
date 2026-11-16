@@ -1,6 +1,6 @@
 from database import db
-from datetime import datetime
-import json
+from datetime import datetime, timezone
+from config.constants import (TASK_STATUSES, TASK_PRIORITIES, CLOSED_TASK_STATUSES, DEFAULT_TASK_STATUS, DEFAULT_TASK_PRIORITY)
 
 class Task(db.Model):
     __tablename__ = 'tasks'
@@ -8,12 +8,12 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(50), default='pending')
-    priority = db.Column(db.Integer, default=3)
+    status = db.Column(db.String(50), default=DEFAULT_TASK_STATUS)
+    priority = db.Column(db.Integer, default=DEFAULT_TASK_PRIORITY)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     due_date = db.Column(db.DateTime, nullable=True)
     tags = db.Column(db.String(500), nullable=True)
 
@@ -36,21 +36,15 @@ class Task(db.Model):
         return data
 
     def validate_status(self, new_status):
-        valid = ['pending', 'in_progress', 'done', 'cancelled']
-        if new_status in valid:
-            return True
-        else:
-            return False
+        return new_status in TASK_STATUSES
 
-    def validate_priority(self, p):
-        if p >= 1 and p <= 5:
-            return True
-        return False
+    def validate_priority(self, priority):
+        return priority in TASK_PRIORITIES
 
     def is_overdue(self):
         if self.due_date:
-            if self.due_date < datetime.utcnow():
-                if self.status != 'done' and self.status != 'cancelled':
+            if self.due_date < datetime.now(timezone.utc).replace(tzinfo=None):
+                if self.status not in CLOSED_TASK_STATUSES:
                     return True
                 else:
                     return False

@@ -1,13 +1,11 @@
 # task-manager-api
 
-API de Task Manager em Python/Flask usada como entrada do desafio `refactor-arch`. Diferente dos outros projetos, este já possui alguma separação de camadas (`models/`, `routes/`, `services/`, `utils/`), mas ainda contém problemas arquiteturais e de qualidade.
+API REST para gerenciamento de tarefas, usu?rios e categorias com Flask e SQLite. A aplica??o segue separa??o entre Routes (mapeamento HTTP), Controllers (fluxos da aplica??o) e Models (persist?ncia e regras do dom?nio).
 
-## Como rodar
+## Configura??o e execu??o
 
-```bash
-pip install -r requirements.txt
-python seed.py
-python app.py
-```
+Crie um ambiente virtual, instale requirements.txt, copie .env.example para .env, execute python seed.py e depois python app.py.
 
-A aplicação sobe em `http://localhost:5000`. O `seed.py` popula o banco SQLite (`tasks.db`) com usuários, categorias e tasks de exemplo — **rode-o antes do primeiro boot**, caso contrário os endpoints vão retornar listas vazias.
+Configure SECRET_KEY e ADMIN_TOKEN no ambiente antes de expor a API. Opera??es protegidas exigem o cabe?alho X-Admin-Token: exclus?o de tasks, altera??o/exclus?o de usu?rios, relat?rios e exclus?o de categorias. Sem ADMIN_TOKEN, essas rotas permanecem fechadas. Para desenvolvimento, o banco SQLite usa instance/tasks.db; execute seed.py para popular os dados de demonstra??o.
+
+Cadastros p?blicos sempre criam usu?rios com papel user. Senhas MD5 j? existentes s?o migradas para scrypt no pr?ximo login v?lido.
