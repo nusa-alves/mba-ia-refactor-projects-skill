@@ -1,11 +1,25 @@
 # task-manager-api
 
-API REST para gerenciamento de tarefas, usu?rios e categorias com Flask e SQLite. A aplica??o segue separa??o entre Routes (mapeamento HTTP), Controllers (fluxos da aplica??o) e Models (persist?ncia e regras do dom?nio).
+API REST para gerenciamento de tarefas, usuários e categorias com Flask e SQLite, usada como entrada do desafio `refactor-arch`. Depois da execução da skill, a aplicação separa Routes (mapeamento de URL e método), Controllers (fluxos da aplicação) e Models (persistência e regras do domínio).
 
-## Configura??o e execu??o
+## Como rodar
 
-Crie um ambiente virtual, instale requirements.txt, copie .env.example para .env, execute python seed.py e depois python app.py.
+```bash
+python -m venv .venv
+.venv\Scripts\activate   # no Windows (PowerShell)
+pip install -r requirements.txt
+python seed.py
+python app.py
+```
 
-Configure SECRET_KEY e ADMIN_TOKEN no ambiente antes de expor a API. Opera??es protegidas exigem o cabe?alho X-Admin-Token: exclus?o de tasks, altera??o/exclus?o de usu?rios, relat?rios e exclus?o de categorias. Sem ADMIN_TOKEN, essas rotas permanecem fechadas. Para desenvolvimento, o banco SQLite usa instance/tasks.db; execute seed.py para popular os dados de demonstra??o.
+A aplicação sobe em `http://localhost:5000`. Rode o `seed.py` **antes do primeiro boot**, senão os endpoints retornam listas vazias. O banco SQLite fica em `instance/tasks.db`.
 
-Cadastros p?blicos sempre criam usu?rios com papel user. Senhas MD5 j? existentes s?o migradas para scrypt no pr?ximo login v?lido.
+## Configuração
+
+A configuração vem de variáveis de ambiente (veja `.env.example`). A aplicação não carrega arquivos `.env` sozinha, então defina as variáveis no terminal antes de iniciar.
+
+- `ADMIN_TOKEN`: obrigatório para as operações protegidas, que exigem o header `X-Admin-Token`: excluir tarefas, atualizar e excluir usuários, relatórios e excluir categorias. Sem token configurado ou enviado, essas rotas respondem `403`.
+- `SECRET_KEY`: chave usada para assinar os tokens de login. Sem valor, uma chave aleatória é gerada a cada início, e os tokens antigos deixam de valer.
+- `DEBUG`, `HOST`, `PORT`, `DATABASE_URL`, `CORS_ORIGINS`: configuração geral (padrões seguros).
+
+Cadastros públicos sempre criam usuários com o papel `user`. Senhas MD5 que já existiam são migradas para scrypt no próximo login válido, e as respostas não incluem mais o hash da senha.
