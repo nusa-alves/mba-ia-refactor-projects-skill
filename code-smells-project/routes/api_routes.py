@@ -23,5 +23,4 @@ api.add_url_rule("/pedidos/<int:pedido_id>/status", "atualizar_status_pedido", o
 api.add_url_rule("/relatorios/vendas", "relatorio_vendas", require_admin(order_controller.relatorio_vendas), methods=["GET"])
 api.add_url_rule("/health", "health_check", admin_controller.health_check, methods=["GET"])
 api.add_url_rule("/admin/reset-db", "reset_database", require_admin(admin_controller.reset_database), methods=["POST"])
-api.add_url_rule("/admin/query", "executar_query", require_admin(admin_controller.executar_query), methods=["POST"])
 

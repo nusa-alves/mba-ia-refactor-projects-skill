@@ -190,13 +190,13 @@ Os relatórios completos estão em `reports/`. A skill rodou, sem nenhuma altera
 
 | Projeto | CRITICAL | HIGH | MEDIUM | LOW | Total | Corrigidos | Não aplicados | Relatório |
 |---|---|---|---|---|---|---|---|---|
-| 1. code-smells-project | 6 | 5 | 4 | 4 | **19** | 18 | 1 | [`reports/audit-project-1.md`](reports/audit-project-1.md) |
+| 1. code-smells-project | 6 | 5 | 4 | 4 | **19** | 19 | 0 | [`reports/audit-project-1.md`](reports/audit-project-1.md) |
 | 2. ecommerce-api-legacy | 5 | 5 | 5 | 4 | **19** | 19 | 0 | [`reports/audit-project-2.md`](reports/audit-project-2.md) |
 | 3. task-manager-api | 5 | 4 | 7 | 4 | **20** | 19 | 1 | [`reports/audit-project-3.md`](reports/audit-project-3.md) |
 
 Os itens **não aplicados** têm motivo:
 
-- **Projeto 1:** a rota `/admin/query` continua executando SQL enviado pelo cliente. Para não mudar a rota, a skill a deixou atrás do token de administrador e só aceitando `SELECT`. Mesmo assim, executar SQL de fora continua sendo um risco, então não contei como corrigido.
+- **Projeto 1:** nenhum. Na primeira rodada, `/admin/query` ficou atrás do token e só com `SELECT`, e eu contei como "não aplicado". A avaliação apontou que a Recommendation mandava remover a execução de SQL externo. Corrigi o playbook (T-11, T-02) e a Fase 3 do `SKILL.md` (aplicar a Recommendation cláusula por cláusula, com prova por `grep`) e rodei de novo: a rota, o handler e `execute_read_query` foram removidos.
 - **Projeto 3:** a linha `db = SQLAlchemy()` continua global. Com o app factory (`create_app`), essa linha só declara a extensão do Flask-SQLAlchemy. Quem inicializa e controla a conexão é cada aplicação (`db.init_app(app)`), então não é uma conexão global compartilhada, e esse é o padrão do próprio Flask-SQLAlchemy. Por isso a skill manteve e justificou o item.
 
 ### A skill achou os problemas da análise manual?
@@ -306,8 +306,8 @@ As pastas `services/` e `utils/` foram removidas porque o código delas não era
 A skill preserva as rotas, os métodos e o formato das respostas. As únicas exceções são correções de segurança, e cada uma ficou listada no resumo da Fase 3. Como elas mudam o comportamento da API, ficam registradas aqui.
 
 **Projeto 1**
-- `/admin/reset-db`, `/admin/query` e `/relatorios/vendas` exigem o header `X-Admin-Token`. Sem token (ou sem `ADMIN_TOKEN` configurado), respondem `403`.
-- `/admin/query` agora só aceita `SELECT`.
+- `/admin/reset-db` e `/relatorios/vendas` exigem o header `X-Admin-Token`. Sem token (ou sem `ADMIN_TOKEN` configurado), respondem `403`.
+- `/admin/query` foi **removida** (responde `404`). O projeto não executa mais SQL vindo do cliente.
 - As respostas de usuários não trazem mais o campo da senha. O `/health` não devolve mais o ambiente, o caminho do banco, o modo debug nem a chave secreta.
 - Erros 500 não mostram detalhes internos.
 - As senhas do seed são guardadas com hash e configuradas pelo ambiente (`SEED_*_PASSWORD`). Senhas antigas viram hash no primeiro login válido.

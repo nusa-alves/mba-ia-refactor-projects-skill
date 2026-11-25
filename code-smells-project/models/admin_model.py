@@ -10,13 +10,6 @@ def reset_database():
     db.commit()
 
 
-def execute_read_query(sql):
-    cursor = get_db().execute(sql)
-    if cursor.description is None:
-        return None
-    return [dict(row) for row in cursor.fetchall()]
-
-
 def health_counts():
     db = get_db()
     return {

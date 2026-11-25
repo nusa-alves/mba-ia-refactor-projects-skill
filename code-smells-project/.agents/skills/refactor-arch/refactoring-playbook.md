@@ -98,6 +98,8 @@ Depois:
 db.all('SELECT * FROM courses WHERE id = ?', [id], cb);
 ```
 
+Se a mesma rota ou função **executa SQL recebido do cliente** (`cursor.execute(request.json["sql"])`), parametrizar não basta: remova a execução, conforme T-11. Não deixe uma versão "restrita" ou "atrás de token".
+
 Regras: valores sempre via placeholder; **nomes** de coluna ou tabela dinâmicos só a partir de uma allowlist fixa; `LIKE` recebe o padrão `%termo%` como parâmetro, nunca na string da query.
 
 ---
@@ -405,6 +407,8 @@ Node (`sqlite3`): envolva em `db.serialize` com `BEGIN`/`COMMIT`/`ROLLBACK`, ou 
 ## T-11 Proteger rotas administrativas e destrutivas
 **Corrige:** AP-05, AP-04
 
+**Princípio:** a Recommendation do relatório é aplicada **por inteiro, cláusula por cláusula**. Se ela diz "proteger" *e* "retirar a execução arbitrária", são duas mudanças, e proteger não cumpre a segunda.
+
 Antes:
 ```python
 @app.route("/admin/query", methods=["POST"])
@@ -412,7 +416,7 @@ def executar_query():
     cursor.execute(request.get_json().get("sql"))
 ```
 
-Depois:
+Depois (SQL do cliente: a rota, o handler e a função do Model são **apagados**; o resto das rotas admin ganha o middleware):
 ```python
 # middlewares/auth.py
 from functools import wraps
@@ -439,8 +443,9 @@ module.exports.requireAdmin = (req, res, next) => {
 
 Regras:
 
-- A **rota continua existindo**, e passa a responder `403` sem o token. Sem `ADMIN_TOKEN` configurado, a rota fica fechada.
-- Para execução de **SQL arbitrário** vindo do cliente: mantenha a rota atrás do token e restrita a `SELECT`. Se não houver necessidade comprovada, recomende removê-la no relatório e deixe a decisão ao usuário.
+- As rotas administrativas **legítimas** (reset, health, relatórios) continuam existindo e passam a responder `403` sem o token. Sem `ADMIN_TOKEN` configurado, a rota fica fechada.
+- **Execução de SQL (ou comando, ou código) vindo do cliente é removida por inteiro, nunca protegida.** Apague a rota, o handler do Controller e a função do Model que recebia a string; remova imports que ficaram sem uso e a menção na documentação. Token de admin e restrição a `SELECT` **não substituem** a remoção: `SELECT` ainda lê `usuarios.senha`, tabelas internas e permite consultas pesadas. A rota removida passa a responder `404`, e isso entra em "Contract changes (deliberate)". Se o usuário precisar de uma consulta administrativa, crie um endpoint dedicado com SQL **fixo** e parâmetros nomeados (por exemplo, `/admin/relatorio-vendas`), nunca um campo livre de SQL.
+- Verificação obrigatória depois da remoção: busque no projeto (`grep -rnE "execute\(|executemany\(|\.query\(|\.all\(|\.run\("`) e confirme que nenhuma chamada recebe string originada em `request`/`req`. Cole o resultado no resumo.
 - Aplique o middleware também em `DELETE` de usuário, relatório financeiro e demais rotas sensíveis que o relatório apontou.
 - Registre como contrato deliberado: "rotas X agora exigem `X-Admin-Token`".
 

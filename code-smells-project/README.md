@@ -15,7 +15,7 @@ A aplicação sobe em `http://localhost:5000`. O banco SQLite (`loja.db`) é cri
 
 A configuração vem de variáveis de ambiente (veja `.env.example`). A aplicação não carrega arquivos `.env` sozinha, então defina as variáveis no terminal antes de iniciar.
 
-- `ADMIN_TOKEN`: obrigatório para usar `/admin/reset-db`, `/admin/query` e `/relatorios/vendas`. Essas rotas exigem o header `X-Admin-Token`. Sem token configurado ou enviado, respondem `403`.
+- `ADMIN_TOKEN`: obrigatório para usar `/admin/reset-db` e `/relatorios/vendas`. Essas rotas exigem o header `X-Admin-Token`. Sem token configurado ou enviado, respondem `403`.
 - `SECRET_KEY`, `DEBUG`, `PORT`, `DB_PATH`: configuração geral (padrões seguros).
 - `CORS_ORIGINS`: lista de origens permitidas, separadas por vírgula. Sem valor, o CORS fica desligado.
 - `SEED_ADMIN_PASSWORD`, `SEED_CUSTOMER_PASSWORD`, `SEED_SECOND_CUSTOMER_PASSWORD`: senhas dos usuários de exemplo. Sem valor, a aplicação gera senhas aleatórias.

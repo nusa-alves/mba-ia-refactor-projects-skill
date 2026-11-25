@@ -27,7 +27,7 @@ Leia cada arquivo **quando a fase correspondente começar**, não antes. Os cami
 
 1. **Nenhum arquivo do projeto é criado, alterado ou apagado antes da confirmação do usuário na Fase 2.** Fases 1 e 2 são somente leitura.
 2. **Todo finding precisa de arquivo e linhas reais.** Abra o arquivo, confira o trecho e só então registre. Nunca estime nem invente números de linha, e nunca cite linhas de memória: releia o intervalo (veja a reconferência da Fase 2, passo 4).
-3. **Preserve o comportamento.** Rotas, métodos, formato dos payloads e códigos de status continuam iguais. A única exceção são as correções de segurança CRITICAL (por exemplo, parar de devolver senha ou segredo na resposta, proteger rotas administrativas). Cada exceção deve ser listada no resumo final como "mudança de contrato deliberada".
+3. **Preserve o comportamento.** Rotas, métodos, formato dos payloads e códigos de status continuam iguais. A única exceção são as correções de segurança CRITICAL (por exemplo, parar de devolver senha ou segredo na resposta, proteger rotas administrativas, **remover rotas que executam SQL/comandos vindos do cliente**, que passam a responder 404). Cada exceção deve ser listada no resumo final como "mudança de contrato deliberada".
 4. **Seja agnóstico de tecnologia.** Aplique os princípios ao stack detectado, sem assumir Python ou Node.
 5. **Não cometa nem faça push.** Quem versiona é o usuário. No fim, sugira uma mensagem de commit.
 6. **Seja honesto na validação.** Só escreva "✓" para o que você de fato executou e viu funcionar. Se não conseguiu rodar a aplicação, diga isso e por quê.
@@ -98,10 +98,14 @@ Só execute depois de um "y" explícito.
 3. **Baseline antes de mexer**: descubra os endpoints (rotas do código, `api.http`, README), monte o arquivo de endpoints e rode `scripts/smoke_test.py` para registrar o comportamento atual. O procedimento está no fim de `refactoring-playbook.md`.
 4. **Planeje** a estrutura MVC alvo conforme `mvc-guidelines.md`. Para projetos já parcialmente organizados, mapeie o que existe e melhore a estrutura sem reescrever o que já está adequado.
 5. **Execute as transformações** do playbook, em ordem de severidade (CRITICAL primeiro). Cada finding aprovado tem de acabar corrigido ou explicitamente justificado como não aplicado.
+   - **Aplique cada Recommendation por inteiro.** Quebre o texto da Recommendation em cláusulas (por exemplo, "parametrizar" + "remover execução de SQL externo" + "proteger rotas") e aplique todas. Aplicar só a parte mais fácil e marcar o finding como "Fixed" é erro.
+   - **Mitigação não é correção.** Restringir, filtrar ou colocar atrás de token algo que a Recommendation manda **remover** (SQL, comando ou código vindo do cliente) não cumpre a cláusula. Remova.
+   - "Not applied" é só para o que **não pode** ser feito sem quebrar algo comprovado (e o motivo cita o arquivo e a causa). Nunca use "Not applied" para finding CRITICAL cuja Recommendation seja viável: faça.
 6. **Valide**:
    - A aplicação inicia sem erros.
    - Todos os endpoints originais respondem. Rode `scripts/smoke_test.py` de novo, comparando com o baseline.
    - Reexamine o código contra o catálogo e liste o que restou.
+   - **Conferência cláusula a cláusula dos CRITICAL**: para cada finding CRITICAL, releia a Recommendation e prove cada cláusula com evidência (grep ou trecho do arquivo). Para SQL Injection e rotas administrativas, rode as buscas do passo final de T-11 e confirme que nenhuma chamada de banco recebe string originada na requisição e que a rota de SQL livre não existe mais. Se alguma cláusula não estiver provada, volte ao passo 5.
 7. Se a validação falhar, corrija e valide de novo. Não encerre com a aplicação quebrada.
 8. Imprima o resumo final neste formato:
 
